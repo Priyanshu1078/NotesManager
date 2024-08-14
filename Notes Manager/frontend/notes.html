@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notes App</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        form {
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 80%;
+            border-collapse: collapse;
+            margin: auto;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        button {
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Notes App</h1>
+    
+    <form id="noteForm">
+        <label for="content">Note Content:</label>
+        <input type="text" id="content" name="content" required>
+        <label for="subject">Subject:</label>
+        <input type="text" id="subject" name="subject" required>
+        <button type="submit">Add Note</button>
+    </form>
+
+    <table id="notesTable">
+        <thead>
+            <tr>
+                <th>Subject</th>
+                <th>Content</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="notesList"></tbody>
+    </table>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const noteForm = document.getElementById('noteForm');
+            const notesList = document.getElementById('notesList');
+
+            noteForm.addEventListener('submit', async function (event) {
+                event.preventDefault();
+
+                const content = noteForm.querySelector('input[name="content"]').value;
+                const subject = noteForm.querySelector('input[name="subject"]').value;
+
+                try {
+                    const response = await axios.post('http://localhost:3000/notes/notes', {
+                        content,
+                        subject,
+                    });
+
+                    if (response.status === 201) {
+                        alert(response.data);
+                        loadNotes();
+                        noteForm.reset();
+                    } else {
+                        alert(response.data);
+                    }
+                } catch (error) {
+                    console.error('Error adding note:', error);
+                    alert('An error occurred while adding the note.');
+                }
+            });
+
+            async function loadNotes() {
+                try {
+                    const response = await axios.get('http://localhost:3000/notes/notes');
+                    const notes = response.data;
+                    renderNotes(notes);
+                } catch (error) {
+                    console.error('Error fetching notes:', error);
+                    alert('An error occurred while fetching notes.');
+                }
+            }
+
+            function renderNotes(notes) {
+                const notesTable = document.getElementById('notesList');
+                notesTable.innerHTML = '';
+
+                notes.forEach(note => {
+                    const row = notesTable.insertRow();
+
+                    const subjectCell = row.insertCell(0);
+                    subjectCell.textContent = note.subject;
+
+                    const contentCell = row.insertCell(1);
+                    contentCell.textContent = note.content;
+
+                    const actionsCell = row.insertCell(2);
+                    const editButton = document.createElement('button');
+                    const deleteButton = document.createElement('button');
+
+                    editButton.textContent = 'Edit';
+                    editButton.addEventListener('click', () => editNote(note._id, note.content));
+
+                    deleteButton.textContent = 'Delete';
+                    deleteButton.addEventListener('click', () => deleteNote(note._id));
+
+                    actionsCell.appendChild(editButton);
+                    actionsCell.appendChild(deleteButton);
+                });
+            }
+
+            async function editNote(noteId, currentContent) {
+                const newContent = prompt('Enter new content:', currentContent);
+                if (newContent !== null) {
+                    try {
+                        await axios.put(`http://localhost:3000/notes/notes/${noteId}`, { content: newContent });
+                        alert('Note updated successfully!');
+                        loadNotes();
+                    } catch (error) {
+                        console.error('Error updating note:', error);
+                        alert('An error occurred while updating the note.');
+                    }
+                }
+            }
+
+            async function deleteNote(noteId) {
+                try {
+                    const response = await axios.delete(`http://localhost:3000/notes/notes/${noteId}`);
+                    alert(response.data);
+                    loadNotes();
+                } catch (error) {
+                    console.error('Error deleting note:', error);
+                    alert('An error occurred while deleting the note.');
+                }
+            }
+
+            loadNotes();
+        });
+    </script>
+</body>
+</html>
